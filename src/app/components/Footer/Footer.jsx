@@ -1,5 +1,5 @@
 "use client"
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -12,13 +12,42 @@ import {
 const Footer = () => {
     const [email, setEmail] = useState('');
     const [showScrollTop, setShowScrollTop] = useState(false);
+    const [isClient, setIsClient] = useState(false);
     const footerRef = useRef(null);
     const sectionRefs = useRef([]);
     const socialRefs = useRef([]);
     const scrollButtonRef = useRef(null);
 
+    // Ensure we're on the client side
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    // Handle scroll to show/hide scroll-to-top button
+    useEffect(() => {
+        if (!isClient) return;
+
+        const handleScroll = () => {
+            setShowScrollTop(window.scrollY > 300);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [isClient]);
+
+    // Scroll to top function
+    const scrollToTop = () => {
+        if (!isClient) return;
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    };
+
     // GSAP animations
     useGSAP(() => {
+        if (!isClient) return;
+
         // Animate footer sections on scroll
         gsap.fromTo(sectionRefs.current,
             { y: 50, opacity: 0 },
@@ -53,25 +82,7 @@ const Footer = () => {
                 }
             }
         );
-    }, []);
-
-    // Handle scroll to show/hide scroll-to-top button
-    useState(() => {
-        const handleScroll = () => {
-            setShowScrollTop(window.scrollY > 300);
-        };
-
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    // Scroll to top function
-    const scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
-    };
+    }, [isClient]);
 
     // Handle newsletter submission
     const handleNewsletterSubmit = (e) => {
@@ -135,8 +146,8 @@ const Footer = () => {
 
     return (
         <>
-            {/* Scroll to Top Button */}
-            {showScrollTop && (
+            {/* Scroll to Top Button - Only render on client */}
+            {isClient && showScrollTop && (
                 <button
                     ref={scrollButtonRef}
                     onClick={scrollToTop}
@@ -267,41 +278,7 @@ const Footer = () => {
                                     </li>
                                 ))}
                             </ul>
-                        </div>
-                    </div>
 
-                    {/* Newsletter Section */}
-                    <div className='flex items-center justify-between'>
-                        <div
-                            ref={el => sectionRefs.current[8] = el}
-                            className="mt-16 p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10"
-                        >
-                            <div className="max-w-3xl mx-auto text-center">
-                                <h3 className="text-2xl font-bold mb-4">Stay Updated</h3>
-                                <p className="text-gray-300 mb-6">
-                                    Subscribe to our newsletter for the latest courses, updates, and exclusive offers.
-                                </p>
-                                <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="Enter your email"
-                                        className="flex-1 px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
-                                        required
-                                    />
-                                    <button
-                                        type="submit"
-                                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 flex items-center justify-center"
-                                    >
-                                        <FiSend className="h-5 w-5 mr-2" />
-                                        Subscribe
-                                    </button>
-                                </form>
-                            </div>
-
-                        </div>
-                        <div>
                             <h3 className="text-lg font-semibold mb-6">Legal</h3>
                             <ul className="space-y-3">
                                 {legalLinks.map((link, index) => (
@@ -316,6 +293,36 @@ const Footer = () => {
                                     </li>
                                 ))}
                             </ul>
+                        </div>
+                    </div>
+
+                    {/* Newsletter Section */}
+                    <div
+                        ref={el => sectionRefs.current[8] = el}
+                        className="mt-16 p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10"
+                    >
+                        <div className="max-w-3xl mx-auto text-center">
+                            <h3 className="text-2xl font-bold mb-4">Stay Updated</h3>
+                            <p className="text-gray-300 mb-6">
+                                Subscribe to our newsletter for latest courses, updates, and exclusive offers.
+                            </p>
+                            <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="Enter your email"
+                                    className="flex-1 px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 flex items-center justify-center"
+                                >
+                                    <FiSend className="h-5 w-5 mr-2" />
+                                    Subscribe
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
