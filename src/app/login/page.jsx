@@ -1,18 +1,21 @@
 // src/app/login/page.jsx
 "use client"
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 import {
     FiMail, FiLock, FiEye, FiEyeOff, FiUser, FiAlertCircle,
-    FiFacebook, FiTwitter, FiGithub, FiChrome, FiArrowRight
+    FiFacebook, FiTwitter, FiGithub, FiChrome, FiArrowRight, FiCheck
 } from 'react-icons/fi';
 
 const LoginPage = () => {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const callbackUrl = searchParams.get('callbackUrl') || null;
+
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -26,6 +29,29 @@ const LoginPage = () => {
     const containerRef = useRef(null);
     const formRef = useRef(null);
     const titleRef = useRef(null);
+
+    // Check for error parameter in URL
+    useEffect(() => {
+        const error = searchParams.get('error');
+        if (error) {
+            switch (error) {
+                case 'CredentialsSignin':
+                    setError('Invalid email or password');
+                    break;
+                case 'OAuthSignin':
+                case 'OAuthCallback':
+                case 'OAuthCreateAccount':
+                case 'EmailCreateAccount':
+                case 'Callback':
+                case 'OAuthAccountNotLinked':
+                case 'SessionRequired':
+                    setError('Authentication error. Please try again.');
+                    break;
+                default:
+                    setError('An error occurred during authentication');
+            }
+        }
+    }, [searchParams]);
 
     useGSAP(() => {
         // Container animation
@@ -95,8 +121,19 @@ const LoginPage = () => {
                 setError('Invalid email or password');
             } else {
                 setSuccess('Login successful! Redirecting...');
+
+                // Get the session to check user role
+                const session = await getSession();
+
+                // Redirect based on user role or callback URL
                 setTimeout(() => {
-                    router.push('/dashboard');
+                    if (callbackUrl) {
+                        router.push(callbackUrl);
+                    } else if (session?.user?.role === 'admin') {
+                        router.push('/admin/dashboard');
+                    } else {
+                        router.push('/student/dashboard');
+                    }
                 }, 1500);
             }
         } catch (error) {
@@ -108,7 +145,10 @@ const LoginPage = () => {
 
     const handleSocialLogin = async (provider) => {
         try {
-            await signIn(provider, { callbackUrl: '/dashboard' });
+            await signIn(provider, {
+                callbackUrl: callbackUrl || '/student/dashboard',
+                redirect: true
+            });
         } catch (error) {
             setError(`Failed to login with ${provider}`);
         }
@@ -147,7 +187,7 @@ const LoginPage = () => {
 
                     {success && (
                         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center">
-                            <FiAlertCircle className="h-5 w-5 text-green-500 mr-3" />
+                            <FiCheck className="h-5 w-5 text-green-500 mr-3" />
                             <span className="text-green-700 text-sm">{success}</span>
                         </div>
                     )}
